@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import wx
 from matplotlib.font_manager import FontProperties
-font = FontProperties(fname=r"C:\Windows\Fonts\simhei.ttf", size=14)  
+font = FontProperties(fname=r"C:\Windows\Fonts\simhei.ttf", size=14)
+
 i = 0
 j = 0
 d = 0
@@ -154,6 +155,7 @@ class MyFrame2(wx.Frame):
 class MyFrame3(wx.Frame):
     def __init__(self, parent, id):
         wx.Frame.__init__(self, parent, id, '有效数据', size=(800, 800))
+        
         # 创建面板
         panel = wx.Panel(self)
         title = wx.StaticText(panel, label='编号 价值 重量', pos=(100,20))
@@ -169,8 +171,10 @@ class MyFrame3(wx.Frame):
 
     def CreateDataBase(self):
         global i
+        global d
         conn = sqlite3.connect('mrsoft.db')
         cursor = conn.cursor()
+        cursor.execute('DROP TABLE IF EXISTS user')
         cursor.execute('create table if not exists user (num int(10) primary key,profit int(20), weight int(20))')
         cubage[i] = max(list(map(int,re.findall(r'\d+',line[i*8+3]))))
         profit[i] = list(map(int,re.findall(r'\d+',line[i*8+5])))
@@ -180,6 +184,9 @@ class MyFrame3(wx.Frame):
             cursor.execute('insert into user (num,profit,weight) values ("%d","%d","%d")'%(j,profit[i][j],weight[i][j]))
         cursor.execute('select * from user')
         result=cursor.fetchall()
+        cursor.close()
+        conn.commit()
+        conn.close()
         return result
         
 if __name__ == '__main__':
@@ -187,4 +194,3 @@ if __name__ == '__main__':
     frame = MyFrame(parent=None,id=-1)  # 实例MyFrame类，并传递参数    
     frame.Show()                        # 显示窗口  
     app.MainLoop()                      # 调用主循环方法
-        
