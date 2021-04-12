@@ -157,8 +157,8 @@ class MyFrame3(wx.Frame):
         wx.Frame.__init__(self, parent, id, '有效数据', size=(800, 800))
         
         # 创建面板
-        panel = wx.Panel(self)
-        title = wx.StaticText(panel, label='编号 价值 重量', pos=(100,20))
+        self.panel = wx.Panel(self)
+        title = wx.StaticText(self.panel, label='编号 价值 重量', pos=(100,20))
         font = wx.Font(14,wx.DEFAULT, wx.FONTSTYLE_NORMAL, wx.NORMAL)
         title.SetFont(font)
         
@@ -167,11 +167,51 @@ class MyFrame3(wx.Frame):
         height = 30
         for j in range(0,d):
             height = height + 20
-            wx.StaticText(panel,label='%8d  %8d  %8d'%(result[j][0],result[j][1],result[j][2]), pos=(100,height))
+            wx.StaticText(self.panel,label='%8d  %8d  %8d'%(result[j][0],result[j][1],result[j][2]), pos=(100,height))
+        #价值：重量比排序
+        global third
+        wx.StaticText(self.panel,label='按价值：重量比排序：', pos=(300,20))
+        wx.StaticText(self.panel,label='编号  价值：重量比', pos=(300,50))
+        for j in range(0,int(d/3)):
+            z=j*3+2
+            third[j]=pw[i][z]
+        third=sorted(third.items(),key=lambda x:x[1],reverse=True)
+        height = 50
+        for j in range(0,int(d/3)):
+            height = height + 20
+            wx.StaticText(self.panel,label='%4d     %f'%(third[j][0],third[j][1]), pos=(300,height))
+        #动态规划算法
+        start1 = time.perf_counter()
+        global cubage
+        global profit
+        global weight
+        global heigh
+        n = d  #物品数量
+        c = cubage[i]  #容量
+        w = weight[i]  #物品重量
+        v = profit[i]  #物品价值
+        value = self.bag(n, c, w, v)
+        wx.StaticText(self.panel,label='动态规划算法：', pos=(500,20))
+        self.show(n, c, w , value)
+        end1 = time.perf_counter()
+        time1 = end1 - start1
+        with open('dpa.txt','a') as f:
+            f.write(f'\n运行时间：{time1}')
+        wx.StaticText(self.panel,label='\n运行时间：%f'%(time1), pos=(500,heigh))
+        #散点图
+        plt.xlabel('weight')
+        plt.ylabel('profit')
+        plt.scatter(weight[i],profit[i])
+        plt.show()
 
+    #创建数据库
     def CreateDataBase(self):
         global i
         global d
+        global cubage
+        global profit
+        global weight
+        global pw
         conn = sqlite3.connect('mrsoft.db')
         cursor = conn.cursor()
         cursor.execute('DROP TABLE IF EXISTS user')
@@ -188,6 +228,42 @@ class MyFrame3(wx.Frame):
         conn.commit()
         conn.close()
         return result
+
+    #动态规划算法
+    def bag(self,n,c,w,v):
+        # 保存状态
+        value = [[0 for j in range(c + 1)] for i in range(n + 1)]
+        for i in range(1, n + 1):
+            for j in range(1, c + 1):
+                value[i][j] = value[i - 1][j]
+                if j >= w[i - 1] and value[i][j] < value[i - 1][j - w[i - 1]] + v[i - 1]:
+                    value[i][j] = value[i - 1][j - w[i - 1]] + v[i - 1]
+        return value
+
+    #展示结果
+    def show(self, n, c, w, value):
+        global heigh
+        heigh = 50
+        wx.StaticText(self.panel,label='最大价值为：%d'%(value[n][c]), pos=(500,heigh))
+        heigh = heigh + 20
+        x = [False for i in range(n)]
+        j = c
+        for i in range(n, 0, -1):
+            if value[i][j] > value[i - 1][j]:
+                x[i - 1] = True
+                j -= w[i - 1]
+        wx.StaticText(self.panel,label='背包中所装物品为：', pos=(500,heigh))
+        heigh = heigh + 20
+        for i in range(n):
+            if x[i]:
+                wx.StaticText(self.panel,label='%d'%(i), pos=(500,heigh))
+                heigh = heigh + 20
+        with open('dpa.txt','w') as f:
+            f.write(f'最大价值为：{value[n][c]}')
+            f.write(f'\n背包中所装物品为：')
+            for i in range(n):
+                if x[i]:
+                    f.write(f'第{i+1}个 ')
         
 if __name__ == '__main__':
     app = wx.App()                      # 初始化
