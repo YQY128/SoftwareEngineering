@@ -4,6 +4,8 @@ import sqlite3
 import matplotlib.pyplot as plt
 import numpy as np
 import wx
+import random
+import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 font = FontProperties(fname=r"C:\Windows\Fonts\simhei.ttf", size=14)
 
@@ -120,7 +122,7 @@ class MyFrame2(wx.Frame):
         """ 点击确定按钮，执行方法 """
         message = ""
         global i
-        i = int(self.text_file.GetValue())     # 获取输入的文件序号
+        i = int(self.text_file.GetValue())      # 获取输入的文件序号
         if self.text_file.GetValue() == "" :    # 判断文件序号是否为空
             message = '输入不能为空'
         else:
@@ -145,12 +147,12 @@ class MyFrame2(wx.Frame):
         wx.MessageBox(message)                        # 弹出提示框
         
         if (message == '读取成功'):
-            frame3 = MyFrame3(parent=None,id=-1)  # 实例MyFrame3类，并传递参数
+            frame3 = MyFrame3(parent=None,id=-1)      # 实例MyFrame3类，并传递参数
             frame3.Show()
 
     def OnclickCancel(self,event):
         """ 点击取消按钮，执行方法 """
-        self.text_file.SetValue("")     # 清空输入的文件序号
+        self.text_file.SetValue("")                   # 清空输入的文件序号
 
 class MyFrame3(wx.Frame):
     def __init__(self, parent, id):
@@ -172,6 +174,7 @@ class MyFrame3(wx.Frame):
         global third
         wx.StaticText(self.panel,label='按价值：重量比排序：', pos=(300,20))
         wx.StaticText(self.panel,label='编号  价值：重量比', pos=(300,50))
+        global i
         for j in range(0,int(d/3)):
             z=j*3+2
             third[j]=pw[i][z]
@@ -186,7 +189,7 @@ class MyFrame3(wx.Frame):
         global profit
         global weight
         global heigh
-        n = d  #物品数量
+        n = d          #物品数量
         c = cubage[i]  #容量
         w = weight[i]  #物品重量
         v = profit[i]  #物品价值
@@ -198,13 +201,62 @@ class MyFrame3(wx.Frame):
         with open('dpa.txt','a') as f:
             f.write(f'\n运行时间：{time1}')
         wx.StaticText(self.panel,label='\n运行时间：%f'%(time1), pos=(500,heigh))
-        #散点图
+
+        # 散点图
         plt.xlabel('weight')
         plt.ylabel('profit')
         plt.scatter(weight[i],profit[i])
         plt.show()
 
-    #创建数据库
+        # 遗传算法
+        start2 = time.perf_counter()
+        heigh = heigh+70
+        m = 32      # 规模
+        N = 500     # 迭代次数
+        Pc = 0.8    # 交配概率
+        Pm = 0.05   # 变异概率
+        V =profit[i]
+        W =weight[i]
+        n = len(W)  # 染色体长度
+        w = cubage[i]
+
+        C = self.init(m, n)
+        S,F  = self.fitness(C,m,n,W,V,w)
+        B ,y = self.best_x(F,S,m)
+        Y =[y]
+        for i in range(N):
+            p = self.rate(F)
+            C = self.chose(p, C, m, n)
+            C = self.match(C, m, n, Pc)
+            C = self.vari(C, m, n, Pm)
+            S, F = self.fitness(C, m, n, W, V, w)
+            B1, y1 = self.best_x(F, S, m)
+            if y1 > y:
+                y = y1
+            Y.append(y)
+            
+        wx.StaticText(self.panel,label='遗传算法：', pos=(500,heigh))
+        
+        heigh = heigh+30
+        wx.StaticText(self.panel,label='最大价值为：%d'%(y), pos=(500,heigh))
+        heigh = heigh+20
+        wx.StaticText(self.panel,label='背包中所装物品编号为：', pos=(500,heigh))
+        for i in range(len(S[0])):
+            heigh = heigh+20
+            wx.StaticText(self.panel,label='%d'%(S[0][i]), pos=(500,heigh))
+            
+        end2 = time.perf_counter()
+        time2 = end2 - start2
+        with open('dpa.txt','a') as f:
+            f.write(f'\n运行时间：{time2}')
+        height = height+40
+        wx.StaticText(self.panel,label='\n运行时间：%f'%(time2), pos=(500,heigh))
+            
+        plt.plot(Y)
+        plt.show()
+        
+
+    # 创建数据库
     def CreateDataBase(self):
         global i
         global d
@@ -229,7 +281,7 @@ class MyFrame3(wx.Frame):
         conn.close()
         return result
 
-    #动态规划算法
+    # 动态规划算法
     def bag(self,n,c,w,v):
         # 保存状态
         value = [[0 for j in range(c + 1)] for i in range(n + 1)]
@@ -240,7 +292,7 @@ class MyFrame3(wx.Frame):
                     value[i][j] = value[i - 1][j - w[i - 1]] + v[i - 1]
         return value
 
-    #展示结果
+    # 展示结果
     def show(self, n, c, w, value):
         global heigh
         heigh = 50
@@ -252,7 +304,7 @@ class MyFrame3(wx.Frame):
             if value[i][j] > value[i - 1][j]:
                 x[i - 1] = True
                 j -= w[i - 1]
-        wx.StaticText(self.panel,label='背包中所装物品为：', pos=(500,heigh))
+        wx.StaticText(self.panel,label='背包中所装物品编号为：', pos=(500,heigh))
         heigh = heigh + 20
         for i in range(n):
             if x[i]:
@@ -264,6 +316,108 @@ class MyFrame3(wx.Frame):
             for i in range(n):
                 if x[i]:
                     f.write(f'第{i+1}个 ')
+                    
+    ##初始化,N为种群规模，n为染色体长度
+    def init(self,N,n):
+        C = []
+        for i in range(N):
+            c = []
+            for j in range(n):
+                a = np.random.randint(0,2)
+                c.append(a)
+            C.append(c)
+        return C
+
+
+    ##评估函数
+    # x(i)取值为1表示被选中，取值为0表示未被选中
+    # w(i)表示各个分量的重量，v（i）表示各个分量的价值，w表示最大承受重量
+    def fitness(self,C,N,n,W,V,w):
+        S = []##用于存储被选中的下标
+        F = []## 用于存放当前该个体的最大价值
+        for i in range(N):
+            s = []
+            h = 0  # 重量
+            f = 0  # 价值
+            for j in range(n):
+                if C[i][j]==1:
+                    if h+W[j]<=w:
+                        h=h+W[j]
+                        f = f+V[j]
+                        s.append(j)
+            S.append(s)
+            F.append(f)
+        return S,F
+
+    ## 适应值函数,B位返回的种族的基因下标，y为返回的最大值
+    def best_x(self,F,S,N):
+        y = 0
+        x = 0
+        B = [0]*N
+        for i in range(N):
+            if y<F[i]:
+                x = i
+            y = F[x]
+            B = S[x]
+        return B,y
+
+    ## 计算比率
+    def rate(self,x):
+        p = [0] * len(x)
+        s = 0
+        for i in x:
+            s += i
+        for i in range(len(x)):
+            p[i] = x[i] / s
+        return p
+
+    ## 选择
+    def chose(self,p, X, m, n):
+        X1 = X
+        r = np.random.rand(m)
+        for i in range(m):
+            k = 0
+            for j in range(n):
+                k = k + p[j]
+                if r[i] <= k:
+                    X1[i] = X[j]
+                    break
+        return X1
+
+    ## 交配
+    def match(self,X, m, n, p):
+        r = np.random.rand(m)
+        k = [0] * m
+        for i in range(m):
+            if r[i] < p:
+                k[i] = 1
+        u = v = 0
+        k[0] = k[0] = 0
+        for i in range(m):
+            if k[i]:
+                if k[u] == 0:
+                    u = i
+                elif k[v] == 0:
+                    v = i
+            if k[u] and k[v]:
+                # print(u,v)
+                q = np.random.randint(n - 1)
+                # print(q)
+                for i in range(q + 1, n):
+                    X[u][i], X[v][i] = X[v][i], X[u][i]
+                k[u] = 0
+                k[v] = 0
+        return X
+
+    ## 变异
+    def vari(self,X, m, n, p):
+        for i in range(m):
+           for j in range(n):
+                q = np.random.rand()
+                if q < p:
+                    X[i][j] = np.random.randint(0,2)
+
+        return X
         
 if __name__ == '__main__':
     app = wx.App()                      # 初始化
