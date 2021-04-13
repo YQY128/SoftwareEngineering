@@ -1,6 +1,5 @@
 
 ********* 10 Strongly correlated instances of D{0-1}KP ***********
-
 SDKP1:
 The dimension is d=3*100, the cubage of knapsack is 60143.
 The profit of items are:
