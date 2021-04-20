@@ -182,7 +182,7 @@ class MyFrame3(wx.Frame):
         height = 50
         for j in range(0,int(d/3)):
             height = height + 20
-            wx.StaticText(self.panel,label='%4d     %f'%(third[j][0],third[j][1]), pos=(300,height))
+            wx.StaticText(self.panel,label='%4d     %f'%(3 * third[j][0] + 2,third[j][1]), pos=(300,height))
         #动态规划算法
         start1 = time.perf_counter()
         global cubage
