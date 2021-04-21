@@ -164,7 +164,11 @@ class MyFrame3(wx.Frame):
         font = wx.Font(14,wx.DEFAULT, wx.FONTSTYLE_NORMAL, wx.NORMAL)
         title.SetFont(font)
         
+        # 将数据存入数据库
         result = self.CreateDataBase()
+        message = '已将数据成功存入数据库！（当前程序所在文件夹下可查看）'
+        wx.MessageBox(message) 
+        
         global d
         height = 30
         for j in range(0,d):
